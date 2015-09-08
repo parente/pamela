@@ -24,6 +24,7 @@ import sys
 # Python 3 bytes/unicode compat
 if sys.version_info >= (3,):
     unicode = str
+    raw_input = input
     def _bytes_to_str(s):
         return s.decode('utf8')
 else:
@@ -188,14 +189,13 @@ def default_conv(n_messages, messages, p_response, app_data):
         if style == PAM_TEXT_INFO or style == PAM_ERROR_MSG:
             # back from POINTER(c_char) to c_char_p
             print(msg_string)
-        elif style == PAM_PROMPT_ECHO_ON:
-            print(msg_string, end=' ')
-            sys.stdout.flush()
-            pw_copy = STRDUP(sys.stdin.readline())
-            p_response.contents[i].resp = pw_copy
-            p_response.contents[i].resp_retcode = 0
-        elif style == PAM_PROMPT_ECHO_OFF:
-            pw_copy = STRDUP(_cast_bytes(getpass.getpass(msg_string)))
+        elif style in (PAM_PROMPT_ECHO_ON, PAM_PROMPT_ECHO_OFF):
+            if style == PAM_PROMPT_ECHO_ON:
+                read_pw = raw_input
+            else:
+                read_pw = getpass.getpass
+            
+            pw_copy = STRDUP(_cast_bytes(read_pw(msg_string)))
             p_response.contents[i].resp = pw_copy
             p_response.contents[i].resp_retcode = 0
         else:
