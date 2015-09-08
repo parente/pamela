@@ -10,6 +10,8 @@ a user against the Pluggable Authentication Modules (PAM) on the system.
 
 Implemented using ctypes, so no compilation is necessary.
 """
+from __future__ import print_function
+
 __all__ = ['PamException', 'Error', 'authenticate', 'open_session', 'close_session']
 
 from ctypes import CDLL, POINTER, Structure, CFUNCTYPE, cast, pointer, sizeof
@@ -18,6 +20,21 @@ from ctypes.util import find_library
 import getpass
 import os
 import sys
+
+# Python 3 bytes/unicode compat
+if sys.version_info >= (3,):
+    unicode = str
+    def _bytes_to_str(s):
+        return s.decode('utf8')
+else:
+    def _bytes_to_str(s):
+        return s
+
+def _cast_bytes(s):
+    if isinstance(s, unicode):
+        return s.encode('utf8')
+    return s
+
 
 LIBPAM = CDLL(find_library("pam"))
 LIBC = CDLL(find_library("c"))
@@ -79,9 +96,13 @@ class PamHandle(Structure):
         Structure.__init__(self)
         self.handle = 0
 
-PAM_STRERROR = LIBPAM.pam_strerror
-PAM_STRERROR.restype = c_char_p
-PAM_STRERROR.argtypes = [PamHandle, c_int]
+_PAM_STRERROR = LIBPAM.pam_strerror
+_PAM_STRERROR.restype = c_char_p
+_PAM_STRERROR.argtypes = [PamHandle, c_int]
+
+def PAM_STRERROR(handle, errno):
+    """Wrap bytes-only _PAM_STRERROR in native str"""
+    return _bytes_to_str(_PAM_STRERROR(handle, errno))
 
 class PamException(Exception):
     def __init__(self, handle, errno):
@@ -99,7 +120,7 @@ class PamMessage(Structure):
             ]
 
     def __repr__(self):
-        return "<PamMessage %i '%s'>" % (self.msg_style, self.msg)
+        return "<PamMessage %i '%s'>" % (self.msg_style, _bytes_to_str(self.msg))
 
 class PamResponse(Structure):
     """wrapper class for pam_response structure"""
@@ -109,7 +130,7 @@ class PamResponse(Structure):
             ]
 
     def __repr__(self):
-        return "<PamResponse %i '%s'>" % (self.resp_retcode, self.resp)
+        return "<PamResponse %i '%s'>" % (self.resp_retcode, _bytes_to_str(self.resp))
 
 CONV_FUNC = CFUNCTYPE(c_int,
         c_int, POINTER(POINTER(PamMessage)),
@@ -160,25 +181,28 @@ def default_conv(n_messages, messages, p_response, app_data):
     for i in range(n_messages):
         msg = messages[i].contents
         style = msg.msg_style
-        msg_string = cast(msg.msg, c_char_p).value
+        msg_string = cast(msg.msg, c_char_p).value.decode('utf8', 'replace')
         if style == PAM_TEXT_INFO or style == PAM_ERROR_MSG:
             # back from POINTER(c_char) to c_char_p
-            print msg_string
+            print(msg_string)
         elif style == PAM_PROMPT_ECHO_ON:
-            print msg_string,
+            print(msg_string, end=' ')
             sys.stdout.flush()
             pw_copy = STRDUP(sys.stdin.readline())
             p_response.contents[i].resp = pw_copy
             p_response.contents[i].resp_retcode = 0
         elif style == PAM_PROMPT_ECHO_OFF:
-            pw_copy = STRDUP(str(getpass.getpass(msg_string)))
+            pw_copy = STRDUP(_cast_bytes(getpass.getpass(msg_string)))
             p_response.contents[i].resp = pw_copy
             p_response.contents[i].resp_retcode = 0
         else:
-            print repr(messages[i].contents)
+            print(repr(messages[i].contents))
     return 0
 
 def pam_start(service, username, conv_func=default_conv):
+    service = _cast_bytes(service)
+    username = _cast_bytes(username)
+    
     handle = PamHandle()
     conv = pointer(PamConv(conv_func, 0))
     retval = PAM_START(service, username, conv, pointer(handle))
@@ -212,6 +236,7 @@ def authenticate(username, password=None, service='login'):
     if password is None:
         handle = pam_start(service, username)
     else:
+        password = _cast_bytes(password)
         @CONV_FUNC
         def my_conv(n_messages, messages, p_response, app_data):
             """Simple conversation function that responds to any
@@ -221,7 +246,7 @@ def authenticate(username, password=None, service='login'):
             p_response[0] = cast(addr, POINTER(PamResponse))
             for i in range(n_messages):
                 if messages[i].contents.msg_style == PAM_PROMPT_ECHO_OFF:
-                    pw_copy = STRDUP(str(password))
+                    pw_copy = STRDUP(password)
                     p_response.contents[i].resp = pw_copy
                     p_response.contents[i].resp_retcode = 0
             return 0
@@ -288,29 +313,29 @@ if __name__ == "__main__":
 
         try:
             authenticate(user, password, o.service)
-        except PamException, e:
-            print repr(e)
+        except PamException as e:
+            print(repr(e))
 
     if o.open_session:
         try:
             open_session(user, o.service)
-        except PamException, e:
-            print repr(e)
+        except PamException as e:
+            print(repr(e))
 
     if o.close_session:
         try:
             close_session(user, o.service)
-        except PamException, e:
-            print repr(e)
+        except PamException as e:
+            print(repr(e))
 
     if o.validate_account:
         try:
             check_account(user, o.service)
-        except PamException, e:
-            print repr(e)
+        except PamException as e:
+            print(repr(e))
 
     if o.change_password:
         try:
             change_password(user, o.service)
-        except PamException, e:
-            print repr(e)
+        except PamException as e:
+            print(repr(e))
