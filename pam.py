@@ -12,7 +12,15 @@ Implemented using ctypes, so no compilation is necessary.
 """
 from __future__ import print_function
 
-__all__ = ['PamException', 'Error', 'authenticate', 'open_session', 'close_session']
+__all__ = [
+    'PamException',
+    'Error',
+    'authenticate',
+    'open_session',
+    'close_session',
+    'check_account',
+    'change_password',
+]
 
 from ctypes import CDLL, POINTER, Structure, CFUNCTYPE, cast, pointer, sizeof
 from ctypes import c_void_p, c_uint, c_char_p, c_char, c_int
