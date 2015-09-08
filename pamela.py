@@ -13,10 +13,10 @@ Implemented using ctypes, so no compilation is necessary.
 """
 from __future__ import print_function
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 __all__ = [
-    'PamException',
+    'PamError',
     'Error',
     'authenticate',
     'open_session',
@@ -68,7 +68,7 @@ PAM_TEXT_INFO = 4
 PAM_REINITIALIZE_CRED = 0x0008  # This constant is libpam-specific.
 
 # Possible error codes
-class Error(object):
+class ERRNO(object):
       PAM_SUCCESS = 0
       PAM_OPEN_ERR = 1
       PAM_SYMBOL_ERR = 2
@@ -118,13 +118,13 @@ def pam_strerror(handle, errno):
     """Wrap bytes-only PAM_STRERROR in native str"""
     return _bytes_to_str(PAM_STRERROR(handle, errno))
 
-class PamException(Exception):
+class PAMError(Exception):
     def __init__(self, handle, errno):
         self.errno = errno
         self.message = pam_strerror(handle, errno)
 
     def __repr__(self):
-        return "<PamException %i: '%s'>" % (self.errno, self.message)
+        return "<PAM Error %i: '%s'>" % (self.errno, self.message)
     
     def __str__(self):
         return '[PAM Error %i] %s' % (self.errno, self.message)
@@ -232,7 +232,7 @@ def pam_start(service, username, conv_func=default_conv, encoding='utf8'):
 
     if retval != 0:
         PAM_END(handle, retval)
-        raise PamException(handle, retval)
+        raise PAMError(handle, retval)
 
     return handle
 
@@ -242,7 +242,7 @@ def pam_end(handle, retval):
         return
     if retval == 0:
         retval = e
-    raise PamException(handle, retval)
+    raise PAMError(handle, retval)
 
 def authenticate(username, password=None, service='login', encoding='utf-8', resetcred=True):
     """Returns True if the given username and password authenticate for the
@@ -355,29 +355,29 @@ if __name__ == "__main__":
 
         try:
             authenticate(user, password, o.service)
-        except PamException as e:
+        except PAMError as e:
             sys.exit(e)
 
     if o.open_session:
         try:
             open_session(user, o.service)
-        except PamException as e:
+        except PAMError as e:
             sys.exit(e)
 
     if o.close_session:
         try:
             close_session(user, o.service)
-        except PamException as e:
+        except PAMError as e:
             sys.exit(e)
 
     if o.validate_account:
         try:
             check_account(user, o.service)
-        except PamException as e:
+        except PAMError as e:
             sys.exit(e)
 
     if o.change_password:
         try:
             change_password(user, o.service)
-        except PamException as e:
+        except PAMError as e:
             sys.exit(e)
