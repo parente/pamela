@@ -179,7 +179,7 @@ PAM_CHAUTHTOK.argtypes = [PamHandle, c_int]
 def default_conv(n_messages, messages, p_response, app_data):
     addr = CALLOC(n_messages, sizeof(PamResponse))
     p_response[0] = cast(addr, POINTER(PamResponse))
-    if not os.isatty(sys.stdin.fileno()):
+    if not sys.stdin.isatty():
         return 0
     for i in range(n_messages):
         msg = messages[i].contents
