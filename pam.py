@@ -25,15 +25,15 @@ import sys
 if sys.version_info >= (3,):
     unicode = str
     raw_input = input
-    def _bytes_to_str(s):
-        return s.decode('utf8')
+    def _bytes_to_str(s, encoding='utf8'):
+        return s.decode(encoding)
 else:
-    def _bytes_to_str(s):
+    def _bytes_to_str(s, encoding='utf8'):
         return s
 
-def _cast_bytes(s):
+def _cast_bytes(s, encoding='utf8'):
     if isinstance(s, unicode):
-        return s.encode('utf8')
+        return s.encode(encoding)
     return s
 
 
@@ -53,6 +53,8 @@ PAM_PROMPT_ECHO_OFF = 1
 PAM_PROMPT_ECHO_ON = 2
 PAM_ERROR_MSG = 3
 PAM_TEXT_INFO = 4
+
+PAM_REINITIALIZE_CRED = 0x0008  # This constant is libpam-specific.
 
 # Possible error codes
 class Error(object):
@@ -176,6 +178,11 @@ PAM_CHAUTHTOK = LIBPAM.pam_chauthtok
 PAM_CHAUTHTOK.restype = c_int
 PAM_CHAUTHTOK.argtypes = [PamHandle, c_int]
 
+PAM_SETCRED = LIBPAM.pam_setcred
+PAM_SETCRED.restype = c_int
+PAM_SETCRED.argtypes = [PamHandle, c_int]
+
+
 @CONV_FUNC
 def default_conv(n_messages, messages, p_response, app_data):
     addr = CALLOC(n_messages, sizeof(PamResponse))
@@ -202,9 +209,9 @@ def default_conv(n_messages, messages, p_response, app_data):
             print(repr(messages[i].contents))
     return 0
 
-def pam_start(service, username, conv_func=default_conv):
-    service = _cast_bytes(service)
-    username = _cast_bytes(username)
+def pam_start(service, username, conv_func=default_conv, encoding='utf8'):
+    service = _cast_bytes(service, encoding)
+    username = _cast_bytes(username, encoding)
     
     handle = PamHandle()
     conv = pointer(PamConv(conv_func, 0))
@@ -224,24 +231,35 @@ def pam_end(handle, retval):
         retval = e
     raise PamException(handle, retval)
 
-def authenticate(username, password=None, service='login'):
+def authenticate(username, password=None, service='login', encoding='utf-8', resetcred=True):
     """Returns True if the given username and password authenticate for the
     given service.  Returns False otherwise
-    
+
     ``username``: the username to authenticate
-    
+
     ``password``: the password in plain text
                   Defaults to None to use PAM's conversation interface
-    
+
     ``service``: the PAM service to authenticate against.
-                 Defaults to 'login'"""
+                 Defaults to 'login'
+
+    The above parameters can be strings or bytes.  If they are strings,
+    they will be encoded using the encoding given by:
+
+    ``encoding``: the encoding to use for the above parameters if they
+                  are given as strings.  Defaults to 'utf-8'
+
+    ``resetcred``: Use the pam_setcred() function to
+                   reinitialize the credentials.
+                   Defaults to 'True'.
+    """
 
     if password is None:
-        handle = pam_start(service, username)
+        conv_func = default_conv
     else:
-        password = _cast_bytes(password)
+        password = _cast_bytes(password, encoding)
         @CONV_FUNC
-        def my_conv(n_messages, messages, p_response, app_data):
+        def conv_func(n_messages, messages, p_response, app_data):
             """Simple conversation function that responds to any
             prompt where the echo is off with the supplied password"""
             # Create an array of n_messages response objects
@@ -254,23 +272,31 @@ def authenticate(username, password=None, service='login'):
                     p_response.contents[i].resp_retcode = 0
             return 0
 
-        handle = pam_start(service, username, my_conv)
-    return pam_end(handle, PAM_AUTHENTICATE(handle, 0))
+    handle = pam_start(service, username, conv_func=conv_func, encoding=encoding)
 
-def open_session(username, service='login'):
-    handle = pam_start(service, username)
+    retval = PAM_AUTHENTICATE(handle, 0)
+    # Re-initialize credentials (for Kerberos users, etc)
+    # Don't check return code of pam_setcred(), it shouldn't matter
+    # if this fails
+    if retval == 0 and resetcred:
+        PAM_SETCRED(handle, PAM_REINITIALIZE_CRED)
+
+    return pam_end(handle, retval)
+
+def open_session(username, service='login', encoding='utf-8'):
+    handle = pam_start(service, username, encoding=encoding)
     return pam_end(handle, PAM_OPEN_SESSION(handle, 0))
 
-def close_session(username, service='login'):
-    handle = pam_start(service, username)
+def close_session(username, service='login', encoding='utf-8'):
+    handle = pam_start(service, username, encoding=encoding)
     return pam_end(handle, PAM_CLOSE_SESSION(handle, 0))
 
-def check_account(username, service='login'):
-    handle = pam_start(service, username)
+def check_account(username, service='login', encoding='utf-8'):
+    handle = pam_start(service, username, encoding=encoding)
     return pam_end(handle, PAM_ACCT_MGMT(handle, 0))
 
-def change_password(username, service='login'):
-    handle = pam_start(service, username)
+def change_password(username, service='login', encoding='utf-8'):
+    handle = pam_start(service, username, encoding=encoding)
     return pam_end(handle, PAM_CHAUTHTOK(handle, 0))
 
 if __name__ == "__main__":
