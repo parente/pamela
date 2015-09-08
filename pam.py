@@ -110,7 +110,10 @@ class PamException(Exception):
         self.message = PAM_STRERROR(handle, errno)
 
     def __repr__(self):
-        return "<PamException %i '%s'>" % (self.errno, self.message)
+        return "<PamException %i: '%s'>" % (self.errno, self.message)
+    
+    def __str__(self):
+        return '[PAM Error %i] %s' % (self.errno, self.message)
 
 class PamMessage(Structure):
     """wrapper class for pam_message structure"""
@@ -314,28 +317,28 @@ if __name__ == "__main__":
         try:
             authenticate(user, password, o.service)
         except PamException as e:
-            print(repr(e))
+            sys.exit(e)
 
     if o.open_session:
         try:
             open_session(user, o.service)
         except PamException as e:
-            print(repr(e))
+            sys.exit(e)
 
     if o.close_session:
         try:
             close_session(user, o.service)
         except PamException as e:
-            print(repr(e))
+            sys.exit(e)
 
     if o.validate_account:
         try:
             check_account(user, o.service)
         except PamException as e:
-            print(repr(e))
+            sys.exit(e)
 
     if o.change_password:
         try:
             change_password(user, o.service)
         except PamException as e:
-            print(repr(e))
+            sys.exit(e)
