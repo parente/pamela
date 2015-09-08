@@ -1,6 +1,6 @@
 # Pamela: yet another Python wrapper for PAM
 
-There seems to be a glut of abandoned Python wrappers for PAM that have since been abandoned.
+There seems to be a glut of Python wrappers for PAM that have since been abandoned.
 This repo merges two separate efforts:
 
 - [gnosek/python-pam](https://github.com/gnosek/python-pam)
