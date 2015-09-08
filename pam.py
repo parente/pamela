@@ -192,10 +192,12 @@ def default_conv(n_messages, messages, p_response, app_data):
     for i in range(n_messages):
         msg = messages[i].contents
         style = msg.msg_style
-        msg_string = cast(msg.msg, c_char_p).value.decode('utf8', 'replace')
-        if style == PAM_TEXT_INFO or style == PAM_ERROR_MSG:
+        msg_string = _bytes_to_str(cast(msg.msg, c_char_p).value)
+        if style == PAM_TEXT_INFO:
             # back from POINTER(c_char) to c_char_p
             print(msg_string)
+        elif style == PAM_ERROR_MSG:
+            print(msg_string, file=sys.stderr)
         elif style in (PAM_PROMPT_ECHO_ON, PAM_PROMPT_ECHO_OFF):
             if style == PAM_PROMPT_ECHO_ON:
                 read_pw = raw_input
