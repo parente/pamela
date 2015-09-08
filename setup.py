@@ -1,14 +1,32 @@
-from setuptools import setup, find_packages
-import sys, os
+#!/usr/bin/env python
+"""
+An interface to the Pluggable Authentication Modules (PAM) library,
+written in pure Python (using ctypes).
+"""
 
-version = '1.0'
+import io
+import os
+import sys
 
-setup(name='pam2',
+from distutils.core import setup
+
+if 'bdist_wheel' in sys.argv:
+    import setuptools
+
+with open('pamela.py') as f:
+    for line in f:
+        if line.startswith('__version__'):
+            version_ns = {}
+            exec(line, version_ns)
+            version = version_ns['__version__']
+version = '0.1'
+
+setup(name='pamela',
       version=version,
       description="PAM interface using ctypes",
-      long_description="""\
-An interface to the Pluggable Authentication Modules (PAM) library on linux, written in pure python (using ctypes)""",
-      classifiers=["Development Status :: 3 - Alpha",
+      long_description=__doc__,
+      classifiers=[
+          "Development Status :: 4 - Beta",
           "Intended Audience :: Developers",
           "License :: OSI Approved :: MIT License",
           "Operating System :: POSIX :: Linux",
@@ -17,16 +35,10 @@ An interface to the Pluggable Authentication Modules (PAM) library on linux, wri
           "Topic :: Software Development :: Libraries :: Python Modules",
           "Topic :: System :: Systems Administration :: Authentication/Directory"
           ],
-      keywords='',
-      author='Grzegorz Nosek',
-      author_email='root@localdomain.pl',
-      url='http://github.com/gnosek/python-pam',
-      download_url = "http://github.com/gnosek/python-pam/archive/%s.zip" % version,
+      keywords=['pam', 'authentication'],
+      author='Min RK',
+      author_email='benjaminrk@gmail.com',
+      url='http://github.com/minrk/pamela',
       license='MIT',
-      py_modules=["pam"],
-      zip_safe=True,
-      install_requires=[],
-      entry_points="""
-      # -*- Entry points: -*-
-      """,
-      )
+      py_modules=["pamela"],
+  )

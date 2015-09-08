@@ -1,5 +1,6 @@
 # (c) 2007 Chris AtLee <chris@atlee.ca>
 # (c) 2010 Grzegorz Nosek <root@localdomain.pl>
+# (c) 2015 Min RK <benjaminrk@gmail.com>
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/mit-license.php
 """
@@ -11,6 +12,8 @@ a user against the Pluggable Authentication Modules (PAM) on the system.
 Implemented using ctypes, so no compilation is necessary.
 """
 from __future__ import print_function
+
+__version__ = '0.1.0'
 
 __all__ = [
     'PamException',
