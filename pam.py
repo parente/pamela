@@ -99,18 +99,18 @@ class PamHandle(Structure):
         Structure.__init__(self)
         self.handle = 0
 
-_PAM_STRERROR = LIBPAM.pam_strerror
-_PAM_STRERROR.restype = c_char_p
-_PAM_STRERROR.argtypes = [PamHandle, c_int]
+PAM_STRERROR = LIBPAM.pam_strerror
+PAM_STRERROR.restype = c_char_p
+PAM_STRERROR.argtypes = [PamHandle, c_int]
 
-def PAM_STRERROR(handle, errno):
-    """Wrap bytes-only _PAM_STRERROR in native str"""
-    return _bytes_to_str(_PAM_STRERROR(handle, errno))
+def pam_strerror(handle, errno):
+    """Wrap bytes-only PAM_STRERROR in native str"""
+    return _bytes_to_str(PAM_STRERROR(handle, errno))
 
 class PamException(Exception):
     def __init__(self, handle, errno):
         self.errno = errno
-        self.message = PAM_STRERROR(handle, errno)
+        self.message = pam_strerror(handle, errno)
 
     def __repr__(self):
         return "<PamException %i: '%s'>" % (self.errno, self.message)
