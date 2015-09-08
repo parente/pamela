@@ -19,7 +19,6 @@ with open('pamela.py') as f:
             version_ns = {}
             exec(line, version_ns)
             version = version_ns['__version__']
-version = '0.1'
 
 setup(name='pamela',
       version=version,
