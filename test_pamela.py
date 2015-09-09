@@ -14,28 +14,26 @@ def test_pam_error_noargs():
 
 
 def test_pam_error_errno():
-    en = pamela.ERRNO.PAM_USER_UNKNOWN
+    en = 2
     e = pamela.PAMError(errno=en)
     assert str(en) in str(e)
-    assert 'user' in str(e)
+    assert 'Unknown' not in str(e)
 
 
 def test_auth_nouser():
     with pytest.raises(pamela.PAMError) as exc_info:
         pamela.authenticate('userdoesntexist', 'wrongpassword')
     
-    err = exc_info.value
-    assert err.errno == pamela.ERRNO.PAM_USER_UNKNOWN
-    assert 'user' in str(err)
+    e = exc_info.value
+    assert 'Unknown' not in str(e)
 
 
 def test_auth_badpassword():
     with pytest.raises(pamela.PAMError) as exc_info:
         pamela.authenticate(getpass.getuser(), 'wrongpassword')
 
-    err = exc_info.value
-    assert err.errno == pamela.ERRNO.PAM_AUTH_ERR
-    assert 'authentication' in str(err)
+    e = exc_info.value
+    assert 'Unknown' not in str(e)
 
 
 def test_all():
