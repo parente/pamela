@@ -86,7 +86,7 @@ def pam_strerror(handle, errno):
 class PAMError(Exception):
     errno = None
     message = ''
-    def __init__(self, errno=None, message=''):
+    def __init__(self, message='', errno=None):
         self.errno = errno
         if message:
             self.message = message
