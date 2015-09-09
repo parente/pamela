@@ -16,8 +16,8 @@ from __future__ import print_function
 __version__ = '0.2.0'
 
 __all__ = [
-    'PamError',
-    'Error',
+    'PAMError',
+    'ERRNO',
     'authenticate',
     'open_session',
     'close_session',
@@ -29,7 +29,6 @@ from ctypes import CDLL, POINTER, Structure, CFUNCTYPE, cast, pointer, sizeof
 from ctypes import c_void_p, c_uint, c_char_p, c_char, c_int
 from ctypes.util import find_library
 import getpass
-import os
 import sys
 
 # Python 3 bytes/unicode compat
@@ -119,15 +118,25 @@ def pam_strerror(handle, errno):
     return _bytes_to_str(PAM_STRERROR(handle, errno))
 
 class PAMError(Exception):
-    def __init__(self, handle, errno):
+    errno = None
+    message = ''
+    def __init__(self, errno=None, message=''):
         self.errno = errno
-        self.message = pam_strerror(handle, errno)
+        if message:
+            self.message = message
+        else:
+            if errno is None:
+                self.message = "Unknown"
+            else:
+                self.message = pam_strerror(PamHandle(), errno)
 
     def __repr__(self):
-        return "<PAM Error %i: '%s'>" % (self.errno, self.message)
+        en = '' if self.errno is None else ' %i' % self.errno
+        return "<PAM Error%s: '%s'>" % (en, self.message)
     
     def __str__(self):
-        return '[PAM Error %i] %s' % (self.errno, self.message)
+        en = '' if self.errno is None else ' %i' % self.errno
+        return '[PAM Error%s] %s' % (en, self.message)
 
 class PamMessage(Structure):
     """wrapper class for pam_message structure"""
@@ -232,7 +241,7 @@ def pam_start(service, username, conv_func=default_conv, encoding='utf8'):
 
     if retval != 0:
         PAM_END(handle, retval)
-        raise PAMError(handle, retval)
+        raise PAMError(errno=retval)
 
     return handle
 
@@ -242,7 +251,7 @@ def pam_end(handle, retval):
         return
     if retval == 0:
         retval = e
-    raise PAMError(handle, retval)
+    raise PAMError(errno=retval)
 
 def authenticate(username, password=None, service='login', encoding='utf-8', resetcred=True):
     """Returns True if the given username and password authenticate for the
