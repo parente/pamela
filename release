@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# bump version, publish release, then bump back to dev
+set -e
+
+bumpversion --tag release
+python setup.py sdist --formats=gztar,zip upload
+python setup.py bdist_wheel upload
+bumpversion patch
+git push
+git push --tags
