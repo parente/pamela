@@ -13,7 +13,7 @@ Implemented using ctypes, so no compilation is necessary.
 """
 from __future__ import print_function
 
-__version__ = '0.2.0'
+__version__ = '0.2.1.dev'
 
 __all__ = [
     'PAMError',
