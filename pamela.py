@@ -276,9 +276,9 @@ def authenticate(username, password=None, service='login', encoding='utf-8', res
     # Don't check return code of pam_setcred(), it shouldn't matter
     # if this fails
     if retval == 0 and resetcred:
+        PAM_OPEN_SESSION(handle, 0)
         PAM_SETCRED(handle, PAM_ESTABLISH_CRED)
 
-    retval = PAM_OPEN_SESSION(handle, 0)
     return pam_end(handle, retval)
 
 def open_session(username, service='login', encoding='utf-8'):
