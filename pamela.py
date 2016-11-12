@@ -275,15 +275,17 @@ def authenticate(username, password=None, service='login', encoding='utf-8', res
     # Re-initialize credentials (for Kerberos users, etc)
     # Don't check return code of pam_setcred(), it shouldn't matter
     # if this fails
-    if retval == 0 and resetcred:
-        PAM_OPEN_SESSION(handle, 0)
-        PAM_SETCRED(handle, PAM_ESTABLISH_CRED)
+    #if retval == 0 and resetcred:
+    #    PAM_SETCRED(handle, PAM_ESTABLISH_CRED)
 
     return pam_end(handle, retval)
 
 def open_session(username, service='login', encoding='utf-8'):
     handle = pam_start(service, username, encoding=encoding)
-    return pam_end(handle, PAM_OPEN_SESSION(handle, 0))
+    retval = PAM_OPEN_SESSION(handle, 0)
+    if retval == 0:
+        PAM_SETCRED(handle, PAM_ESTABLISH_CRED)
+    return pam_end(handle, retval)
 
 def close_session(username, service='login', encoding='utf-8'):
     handle = pam_start(service, username, encoding=encoding)
