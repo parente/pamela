@@ -63,6 +63,7 @@ PAM_PROMPT_ECHO_ON = 2
 PAM_ERROR_MSG = 3
 PAM_TEXT_INFO = 4
 
+PAM_ESTABLISH_CRED = 0x0002
 PAM_REINITIALIZE_CRED = 0x0008  # This constant is libpam-specific.
 
 class PamHandle(Structure):
@@ -275,7 +276,7 @@ def authenticate(username, password=None, service='login', encoding='utf-8', res
     # Don't check return code of pam_setcred(), it shouldn't matter
     # if this fails
     if retval == 0 and resetcred:
-        PAM_SETCRED(handle, PAM_REINITIALIZE_CRED)
+        PAM_SETCRED(handle, PAM_ESTABLISH_CRED)
 
     return pam_end(handle, retval)
 
